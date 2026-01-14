@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mystery Box AJAIB4D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .animate-marquee {
+            display: inline-block;
+            animation: marquee 40s linear infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(180deg); }
+        }
+        .animate-float {
+            animation: float 8s ease-in-out infinite;
+        }
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 30px rgba(234, 179, 8, 0.6), 0 0 60px rgba(234, 179, 8, 0.3); }
+            50% { box-shadow: 0 0 50px rgba(234, 179, 8, 0.8), 0 0 100px rgba(234, 179, 8, 0.5); }
+        }
+        .animate-glow {
+            animation: glow 2s ease-in-out infinite;
+        }
+        @keyframes pulse-gold {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-pulse-gold {
+            animation: pulse-gold 2s ease-in-out infinite;
+        }
+        @keyframes bounce-chat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-bounce-chat {
+            animation: bounce-chat 2s ease-in-out infinite;
+        }
+
+        /* ─── Naga Kuning ─────────────────────────────────────── */
+        .dragon {
+            position: absolute;
+            font-size: 42px;
+            pointer-events: none;
+            user-select: none;
+            z-index: 5;
+            will-change: transform;
+            filter: drop-shadow(0 0 12px #eab308) drop-shadow(0 0 24px #ca8a04);
+            transition: transform 0.12s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-black via-gray-900 to-black min-h-screen overflow-x-hidden">
+    
+    <!-- Naga Background (menggantikan sparkles) -->
+    <div id="dragons" class="fixed inset-0 pointer-events-none"></div>
+
+    <!-- Running Text -->
+    <div class="fixed top-0 left-0 right-0 bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-600 text-black py-3 overflow-hidden shadow-2xl z-10 border-b-4 border-yellow-400">
+        <div class="animate-marquee whitespace-nowrap">
+            <span id="winnerText" class="text-sm md:text-base font-bold"></span>
+        </div>
+    </div>
+
+    <!-- Sound Toggle -->
+    <button id="soundToggle" class="fixed top-20 right-4 bg-gradient-to-r from-yellow-600 to-yellow-500 p-3 rounded-full hover:from-yellow-500 hover:to-yellow-400 transition shadow-lg z-10 border-2 border-yellow-400">
+        <span id="soundIcon">🔊</span>
+    </button>
+
+    <!-- ... (semua elemen lain sama persis sampai akhir body) ... -->
+
+    <script>
+        // GANTI NOMOR WHATSAPP DI SINI
+        const WHATSAPP_NUMBER = '6287784195051';
+        
+        const prizes = [
+            { name: 'Saldo 100rb', value: 'Rp 100.000', icon: '💳' },
+            { name: 'Saldo 150rb', value: 'Rp 150.000', icon: '💰' },
+            { name: 'Saldo 200rb', value: 'Rp 200.000', icon: '💸' },
+            { name: 'Saldo 500rb', value: 'Rp 500.000', icon: '🤑' },
+            { name: 'Emas Batang 3gr', value: 'Emas 3 Gram', icon: '🥇' },
+            { name: 'iPhone 17 Pro Max', value: 'iPhone 17 Pro Max', icon: '📲' }
+        ];
+
+        let stage = 'welcome';
+        let userId = '';
+        let claimedUsers = [];
+        let soundEnabled = true;
+        let audioContext = null;
+        let bgMusicPlaying = false;
+
+        // ─── Ganti sparkles menjadi naga kuning ────────────────────────────────
+        function createDragons() {
+            const container = document.getElementById('dragons');
+            const dragonEmojis = ['🐉', '🐲']; // dua variasi emoji naga
+
+            for (let i = 0; i < 12; i++) {   // jumlah naga (bisa dinaikkan/turunkan)
+                const dragon = document.createElement('div');
+                dragon.textContent = dragonEmojis[i % 2];
+                dragon.className = 'dragon';
+                
+                // posisi awal acak
+                dragon.style.left = Math.random() * 100 + 'vw';
+                dragon.style.top  = Math.random() * 100 + 'vh';
+                
+                // ukuran sedikit variasi
+                const size = 36 + Math.random() * 24;
+                dragon.style.fontSize = size + 'px';
+                
+                // kecepatan & delay animasi berbeda-beda
+                dragon.style.transitionDuration = (0.08 + Math.random() * 0.12) + 's';
+                dragon.dataset.offsetX = (Math.random() - 0.5) * 180; // offset horizontal
+                dragon.dataset.offsetY = (Math.random() - 0.5) * 140; // offset vertical
+                
+                container.appendChild(dragon);
+            }
+        }
+
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+
+        // Update posisi mouse
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        // Animasi naga mengikuti cursor + sedikit gerakan random
+        function animateDragons() {
+            const dragons = document.querySelectorAll('.dragon');
+            dragons.forEach((d, i) => {
+                const offsetX = parseFloat(d.dataset.offsetX) || 0;
+                const offsetY = parseFloat(d.dataset.offsetY) || 0;
+                
+                // posisi target = mouse + offset acak (supaya tidak semua nempel persis)
+                let targetX = mouseX + offsetX;
+                let targetY = mouseY + offsetY;
+                
+                // tambah sedikit gerakan sinusoidal supaya terlihat hidup
+                const time = Date.now() * 0.001 + i * 3;
+                targetX += Math.sin(time * 1.2) * 60;
+                targetY += Math.cos(time * 0.9) * 50;
+                
+                // hitung posisi saat ini
+                const currentX = parseFloat(d.style.left) || mouseX;
+                const currentY = parseFloat(d.style.top)  || mouseY;
+                
+                // lerp (smooth follow)
+                const newX = currentX + (targetX - currentX) * 0.08;
+                const newY = currentY + (targetY - currentY) * 0.08;
+                
+                d.style.left = newX + 'px';
+                d.style.top  = newY + 'px';
+            });
+            
+            requestAnimationFrame(animateDragons);
+        }
+
+        // Generate winner text (sama seperti sebelumnya)
+        function generateUsername() {
+            const prefixes = ['user_', 'member_', 'player_', 'lucky_', 'winner_', 'pro_', 'vip_', 'king_', 'ace_', 'star_'];
+            const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+            const lastTwo = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+            return `${prefix}***${lastTwo}`;
+        }
+
+        function updateWinnerText() {
+            let text = '';
+            const emojis = ['🎊', '🎉', '✨', '⭐', '👑', '🚀'];
+            for (let i = 0; i < 8; i++) {
+                const randomUser = generateUsername();
+                const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
+                const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+                text += `${emoji} Selamat kepada ${randomUser} mendapatkan ${randomPrize.value}! `;
+            }
+            document.getElementById('winnerText').textContent = text;
+        }
+
+        // ... (semua function lain seperti playSound, renderWelcome, renderInput, dll tetap sama) ...
+
+        // Initialize ─────────────────────────────────────────────────────────────
+        createDragons();
+        animateDragons();               // mulai animasi follow cursor
+        updateWinnerText();
+        setInterval(updateWinnerText, 12000);
+        render();
+
+        // ... (event listener soundToggle, liveChatBtn, whatsappBtn, dll tetap sama) ...
+    </script>
+</body>
+</html>
